@@ -139,6 +139,47 @@ app.post('/like/:id', Auth, async (req, res) => {
     }
 });
 
+app.post('/follow/:id', Auth, async (req, res) => {
+    let targetUserId = req.params.id;
+    let currentUserId = req.user.id;
+    // console.log(req.user);
+
+    if (targetUserId === currentUserId) {
+        res.json({ msg: "Khudko follow kyu kar raha hai bhai..." })
+    }
+    let targetUser = await User.findById(targetUserId);
+    let currentUser = await User.findById(currentUserId);
+    if (!targetUser || !currentUser) {
+        return res.status(404).json({ msg: "User hai hi nahi " });
+    }
+    let alreadyFollowing = currentUser.following.includes(targetUserId);
+    if (alreadyFollowing) {
+        currentUser.following = currentUser.following.filter(id => {
+            return id.toString() !== targetUserId.toString();
+        });
+        targetUser.followers = targetUser.followers.filter(id => {
+            return id.toString() !== currentUserId.toString();
+        });
+
+        await currentUser.save();
+        await targetUser.save();
+
+        return res.json({
+            success: true,
+            msg: "Unfollowed successfully"
+        });
+    }
+
+    //followers
+    currentUser.following.push(targetUserId)
+    targetUser.followers.push(currentUserId);
+    await currentUser.save()
+    await targetUser.save()
+
+   res.json({msg:"followed succe......"})
+
+});
+
 app.listen(4000, () => {
     console.log("Server is running ")
 })
