@@ -1,4 +1,4 @@
-let express = require('express');
+const express = require("express");
 const bcrypt = require("bcrypt");
 const Auth = require("./Auth");
 let mongoose = require('mongoose');
@@ -6,6 +6,7 @@ let User = require('./User');
 let Upload = require('./Upload');
 let jwt = require('jsonwebtoken');
 let cors = require('cors');
+let Comment = require('./comment')
 mongoose.connect('mongodb://127.0.0.1:27017/insta').then(() => {
     console.log("db...");
 })
@@ -176,9 +177,63 @@ app.post('/follow/:id', Auth, async (req, res) => {
     await currentUser.save()
     await targetUser.save()
 
-   res.json({msg:"followed succe......"})
+    res.json({ msg: "followed succe......" })
 
 });
+
+app.post('/comment/:id', Auth, async (req, res) => {
+    try {
+        let { text } = req.body;
+        let userId = req.user.id;
+        let postId = req.params.id;
+        console.log(text);
+
+
+        console.log("userId", userId, "postid", postId);
+        if (!text) {
+            return res.json({
+                success: false,
+                msg: "Message required"
+            })
+        }
+
+
+        let NewComment = new Comment({
+            text: text,
+            userId: userId,
+            postId: postId
+        });
+
+        await NewComment.save();
+        return res.json({
+            success: true,
+            msg: "Commented Doneee"
+        })
+    }
+    catch (err) {
+        console.log(err, "Comment error");
+        return res.json({
+            success: false,
+            msg: err.message
+        })
+    }
+})
+
+
+app.post('/search', async (req, res) => {
+    let query = req.query.q;
+    if (!query) {
+        return res.send("query nahi hai")
+    }
+    let isMatch = await User.find({
+        $or: [
+            { name: { $regex: query, $options: 'i' } },
+            { email: { $regex: query, $options: 'i' } }
+        ]
+    }).limit(1);
+    res.json({ msg: isMatch })
+    console.log(isMatch, "isMatch");
+})
 
 app.listen(4000, () => {
     console.log("Server is running ")
